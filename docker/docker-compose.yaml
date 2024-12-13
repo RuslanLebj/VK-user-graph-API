@@ -1,0 +1,39 @@
+services:
+
+  app:
+    ports:
+      - "8000:8000"
+    build:
+      dockerfile: ./docker/app/Dockerfile
+      context: ../
+    command: > # Скрипт wait-for-it.sh для ожидания готовности порта.
+      sh -c "
+      chmod +x ./docker/wait-for-it.sh &&
+      ./docker/wait-for-it.sh neo4j:7687 -- 
+      uvicorn src.app.main:app --reload --host 0.0.0.0 --port 8000
+      "
+    volumes:
+      - ../:/opt/app
+    restart: on-failure
+    env_file:
+      - app/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NEO4J_BOLT_URL=bolt://neo4j:7687
+    depends_on:
+      - neo4j
+
+
+  neo4j:
+    image: neo4j:4.3
+    env_file:
+      - ./neo4j/local.env
+    ports:
+      - 7474:7474
+      - 7687:7687
+    volumes:
+      - neo4j_data:/data
+
+
+volumes:
+  neo4j_data:
